@@ -15,11 +15,6 @@
           <ion-label>Push Notifications</ion-label>
           <ion-toggle slot="end" v-model="settings.pushNotifications" />
         </ion-item>
-        <ion-item>
-          <ion-icon :icon="mailOutline" slot="start" />
-          <ion-label>Email Alerts</ion-label>
-          <ion-toggle slot="end" v-model="settings.emailAlerts" />
-        </ion-item>
       </ion-list>
 
       <!-- App Preferences -->
@@ -28,11 +23,7 @@
         <ion-item>
           <ion-icon :icon="moonOutline" slot="start" />
           <ion-label>Dark Mode</ion-label>
-          <ion-toggle
-            slot="end"
-            v-model="settings.darkMode"
-            @ionChange="toggleDarkMode"
-          />
+          <ion-toggle slot="end" v-model="settings.darkMode" />
         </ion-item>
         <ion-item button @click="clearCache">
           <ion-icon :icon="trashOutline" slot="start" />
@@ -73,8 +64,6 @@ import {
   IonNote,
 } from "@ionic/vue";
 import {
-  personOutline,
-  lockClosedOutline,
   notificationsOutline,
   mailOutline,
   moonOutline,
@@ -82,41 +71,78 @@ import {
   documentTextOutline,
   informationCircleOutline,
 } from "ionicons/icons";
-import { ref } from "vue";
+import { ref, watch, onMounted } from "vue";
+import { LocalNotifications } from "@capacitor/local-notifications";
 
-// Settings state
-const settings = ref({
-  pushNotifications: true,
-  emailAlerts: false,
-  darkMode: false,
-});
+// Load settings from localStorage or set default
+const storedSettings = localStorage.getItem("user_settings");
+const settings = ref(
+  storedSettings
+    ? JSON.parse(storedSettings)
+    : {
+        pushNotifications: false,
+        emailAlerts: false,
+        darkMode: false,
+      }
+);
 
-// Handlers
-function goToProfile() {
-  console.log("Navigating to profile settings...");
-}
+// Save settings to localStorage whenever they change
+watch(
+  settings,
+  (val) => {
+    localStorage.setItem("user_settings", JSON.stringify(val));
+  },
+  { deep: true }
+);
 
-function changePassword() {
-  console.log("Navigating to change password...");
-}
+// Watch push notifications toggle
+watch(
+  () => settings.value.pushNotifications,
+  async (enabled) => {
+    if (enabled) {
+      const result = await LocalNotifications.requestPermissions();
+      if (result.display !== "granted") {
+        alert("Push notification permission denied.");
+        settings.value.pushNotifications = false;
+      } else {
+        console.log("Push notifications enabled.");
+      }
+    } else {
+      console.log("Push notifications disabled.");
+    }
+  }
+);
 
-function toggleDarkMode() {
-  document.body.classList.toggle("dark", settings.value.darkMode);
-}
+// Watch dark mode toggle and apply/remove 'dark' class globally
+watch(
+  () => settings.value.darkMode,
+  (enabled) => {
+    if (enabled) {
+      document.body.classList.add("dark");
+    } else {
+      document.body.classList.remove("dark");
+    }
+  },
+  { immediate: true } // Apply on load
+);
 
 function clearCache() {
-  console.log("Clearing app cache...");
-  localStorage.clear();
-  alert("Cache cleared successfully.");
+  const confirmClear = window.confirm(
+    "⚠️ WARNING: Clearing cache will permanently delete all saved data from local storage.\n\n" +
+      "This action cannot be undone.\n\n" +
+      "It is strongly advised NOT to delete your data unless absolutely necessary.\n\n" +
+      "Are you sure you want to continue?"
+  );
+
+  if (confirmClear) {
+    localStorage.clear();
+    alert("✅ Cache cleared successfully. All data has been deleted.");
+  } else {
+    alert("❌ Cache clearing cancelled. Your data is safe.");
+  }
 }
 
 function openPrivacyPolicy() {
   window.open("https://yourdomain.com/privacy", "_blank");
 }
 </script>
-
-<style scoped>
-ion-item {
-  --inner-padding-end: 8px;
-}
-</style>
