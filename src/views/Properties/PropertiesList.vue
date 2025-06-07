@@ -13,12 +13,17 @@
     </ion-header>
 
     <ion-content>
-      <PropertiesList
-        :properties="filteredProperties"
-        :badgeColor="badgeColor"
-        @edit="openEditModal"
-        @delete="handleDeleteProperty"
-      />
+      <template v-if="filteredProperties.length > 0">
+        <PropertiesList
+          :properties="filteredProperties"
+          :badgeColor="badgeColor"
+          @edit="openEditModal"
+          @delete="handleDeleteProperty"
+        />
+      </template>
+      <template v-else>
+        <NoData message="No properties found." />
+      </template>
     </ion-content>
 
     <PropertyAddModal
@@ -45,7 +50,7 @@ import {
 } from "@ionic/vue";
 import { add } from "ionicons/icons";
 import { ref, reactive, computed, watch } from "vue";
-
+import NoData from "@/components/NoData.vue";
 import SearchBar from "@/components/SearchBar.vue";
 import PropertiesList from "@/views/Properties/components/PropertyList.vue";
 import PropertyAddModal from "@/views/Properties/components/PropertyAddModal.vue";

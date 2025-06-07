@@ -13,7 +13,7 @@
     </ion-header>
 
     <ion-content>
-      <ion-list>
+      <ion-list v-if="filteredTenants.length > 0">
         <tenant-card
           v-for="tenant in filteredTenants"
           :key="tenant.id"
@@ -23,6 +23,7 @@
           @delete="deleteTenant"
         />
       </ion-list>
+      <NoData v-else message="No tenants found." />
     </ion-content>
 
     <!-- View, Create & Edit Modal -->
@@ -139,9 +140,9 @@
             :disabled="viewOnly"
             interface="popover"
           >
-            <ion-select-option value="active">Occupied</ion-select-option>
-            <ion-select-option value="moved_out">Moved Out</ion-select-option>
-            <ion-select-option value="pending">Available</ion-select-option>
+            <ion-select-option value="Occupied">Occupied</ion-select-option>
+            <ion-select-option value="Move Out">Moved Out</ion-select-option>
+            <ion-select-option value="Available">Available</ion-select-option>
             <ion-select-option value="not_available">
               Not Available
             </ion-select-option>
@@ -183,6 +184,7 @@ import { add } from "ionicons/icons";
 import { reactive, ref, computed } from "vue";
 import TenantCard from "@/views/TenantManagement/components/TenantCard.vue";
 import SearchBar from "@/components/SearchBar.vue";
+import NoData from "@/components/NoData.vue";
 
 interface Tenant {
   id: number;
@@ -211,7 +213,6 @@ const tenants = ref<Tenant[]>([]);
 function loadTenants(): Tenant[] {
   const stored = localStorage.getItem("tenants");
   const storedProperties = localStorage.getItem("propertyData");
-
   if (storedProperties) {
     try {
       const properties = JSON.parse(storedProperties);
@@ -255,7 +256,7 @@ const newTenant = reactive<Tenant>({
   unit_price: 0,
   num_people: 1,
   due_date: "",
-  status: "active",
+  status: "Occupied",
   property: "",
 });
 
