@@ -182,7 +182,7 @@ const filteredProperties = computed(() => {
 });
 
 // ---------------- Helpers ----------------
-function badgeColor(status: Unit["status"]) {
+function badgeColor(status: string): string {
   switch (status) {
     case "Occupied":
       return "success";
@@ -192,6 +192,8 @@ function badgeColor(status: Unit["status"]) {
       return "danger";
     case "Move Out":
       return "danger";
+    default:
+      return "medium"; // fallback color
   }
 }
 </script>

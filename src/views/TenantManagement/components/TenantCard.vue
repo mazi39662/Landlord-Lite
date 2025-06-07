@@ -22,7 +22,11 @@
 <script setup lang="ts">
 import { IonItem, IonLabel, IonButtons, IonButton, IonIcon } from "@ionic/vue";
 import { pencil, trash, eye } from "ionicons/icons";
-import type { Tenant } from "../types";
+
+interface Tenant {
+  id: number;
+  name: string;
+}
 
 const props = defineProps<{
   tenant: Tenant & { unit: string; property: string };

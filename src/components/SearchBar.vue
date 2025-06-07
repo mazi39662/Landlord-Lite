@@ -1,5 +1,5 @@
 <template>
-  <ion-searchbar v-model="searchTerm" debounce="300" placeholder="Search..." />
+  <ion-searchbar v-model="searchTerm" :debounce="300" placeholder="Search..." />
 </template>
 
 <script setup lang="ts">

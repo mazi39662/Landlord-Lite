@@ -93,6 +93,7 @@
           <ion-select
             v-model="newTenant.property"
             placeholder="Select Property"
+            :disabled="viewOnly"
           >
             <ion-select-option
               v-for="(name, index) in propertyNames"
@@ -138,10 +139,10 @@
             :disabled="viewOnly"
             interface="popover"
           >
-            <ion-select-option value="Occupied">Occupied</ion-select-option>
-            <ion-select-option value="Moved Out">Moved Out</ion-select-option>
-            <ion-select-option value="Available">Available</ion-select-option>
-            <ion-select-option value="Not Available">
+            <ion-select-option value="active">Occupied</ion-select-option>
+            <ion-select-option value="moved_out">Moved Out</ion-select-option>
+            <ion-select-option value="pending">Available</ion-select-option>
+            <ion-select-option value="not_available">
               Not Available
             </ion-select-option>
           </ion-select>
@@ -192,11 +193,11 @@ interface Tenant {
   id_image?: string;
   ref_id?: string;
   unit_id?: number;
-  unit?: string;
+  unit: string;
   num_people?: number;
   due_date?: string;
-  status?: "active" | "moved_out" | "pending";
-  property?: string;
+  status?: "Occupied" | "Move Out" | "Available" | "Not Available";
+  property: string;
   unit_price?: number;
 }
 
@@ -337,9 +338,9 @@ function editTenant(tenant: Tenant) {
 function deleteTenant(id: number) {
   try {
     if (confirm("Are you sure you want to delete this tenant?")) {
-      tenants.value = tenants.value.filter((t) => t.id !== id);
+      tenants.value = tenants.value.filter((tenant) => tenant.id !== id);
       saveTenants(tenants.value);
-      alert("Tenant deleted.");
+      alert("Tenant deleted successfully.");
     }
   } catch (error) {
     console.error("Error deleting tenant:", error);
@@ -357,38 +358,29 @@ function reset() {
     id_image: "",
     ref_id: "",
     unit_id: undefined,
-    unit: "",
+    unit: "", // reset as empty string
+    unit_price: 0,
     num_people: 1,
     due_date: "",
     status: "active",
-    property: "",
+    property: "", // reset as empty string
   });
-  viewOnly.value = false;
+}
+
+function generateUniqueRefId() {
+  return Math.random().toString(36).substr(2, 9).toUpperCase();
 }
 
 function handleFileUpload(event: Event) {
-  try {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (file) {
-      newTenant.id_image = URL.createObjectURL(file);
-    }
-  } catch (error) {
-    console.error("Error uploading file:", error);
-    alert("Error uploading file.");
-  }
-}
+  const input = event.target as HTMLInputElement;
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
 
-function generateUniqueRefId(): string {
-  const existingRefIds = tenants.value.map((t) => t.ref_id);
-  let refId = "";
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-
-  do {
-    refId = Array.from({ length: 8 }, () =>
-      chars.charAt(Math.floor(Math.random() * chars.length))
-    ).join("");
-  } while (existingRefIds.includes(refId));
-
-  return refId;
+  // Simple FileReader to get base64 or URL for demo
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    newTenant.id_image = e.target?.result as string;
+  };
+  reader.readAsDataURL(file);
 }
 </script>

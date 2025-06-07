@@ -10,7 +10,7 @@
       <ion-datetime
         class="custom-calendar"
         presentation="date"
-        prefer-wheel="false"
+        :prefer-wheel="false"
         :value="selectedDate"
         :highlighted-dates="highlightedDates"
         @ionChange="onDateSelect"
@@ -51,6 +51,7 @@ import {
   IonText,
 } from "@ionic/vue";
 import { ref, computed } from "vue";
+import { LocalNotifications } from "@capacitor/local-notifications";
 
 // Reactive state
 const dueDates = ref<
@@ -113,6 +114,69 @@ function onDateSelect(event: CustomEvent) {
   selectedDate.value = event.detail.value.split("T")[0];
 }
 
+// Schedule local notifications for upcoming dues (1 day before)
+async function scheduleUpcomingNotifications() {
+  const today = new Date();
+
+  const upcoming = dueDates.value.filter((d) => {
+    const due = new Date(d.date);
+    const diffDays = Math.floor(
+      (due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    return diffDays === 1;
+  });
+
+  const notifications = upcoming.map((d, index) => ({
+    id: index + 1,
+    title: "📢 Rent Due Reminder",
+    body: `Tenant ${d.tenant}'s rent is due tomorrow 💰`,
+    schedule: {
+      at: new Date(new Date(d.date).setDate(new Date(d.date).getDate() - 1)),
+    },
+  }));
+
+  if (notifications.length > 0) {
+    await LocalNotifications.schedule({ notifications });
+  }
+}
+
+// 🔔 Send notification for tenants due today, repeat every 3 hours
+async function startTodayDueReminder() {
+  const today = new Date().toISOString().split("T")[0];
+  const dueTodayList = dueDates.value.filter((d) => d.date === today);
+
+  if (dueTodayList.length === 0) return;
+
+  const tenantNames = dueTodayList.map((d) => d.tenant).join(", ");
+  const message =
+    dueTodayList.length === 1
+      ? `Today, ${tenantNames} is due for rent!`
+      : `Today, ${tenantNames} are due for rent!`;
+
+  let notificationId = 500;
+
+  // Function to trigger the notification
+  const sendReminder = async () => {
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: notificationId++,
+          title: "📢 Rent Due Today",
+          body: message,
+          schedule: { at: new Date(new Date().getTime() + 1000) }, // 1 second delay
+        },
+      ],
+    });
+  };
+
+  // Ask permission and start repeating reminder
+  const perm = await LocalNotifications.requestPermissions();
+  if (perm.display === "granted") {
+    sendReminder(); // send now
+    setInterval(sendReminder, 3 * 60 * 60 * 1000); // repeat every 3 hours
+  }
+}
+
 // Load and prepare due dates
 function onLoad() {
   const stored = localStorage.getItem("tenants");
@@ -121,6 +185,13 @@ function onLoad() {
   try {
     const tenants = JSON.parse(stored);
     dueDates.value = generateRecurringDates(tenants);
+
+    LocalNotifications.requestPermissions().then((result) => {
+      if (result.display === "granted") {
+        scheduleUpcomingNotifications();
+        startTodayDueReminder();
+      }
+    });
   } catch (err) {
     console.error("Error parsing tenants:", err);
   }
