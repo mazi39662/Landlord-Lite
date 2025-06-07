@@ -3,13 +3,12 @@
     <ion-header>
       <ion-toolbar>
         <ion-title size="large">Landlord - Lite</ion-title>
-
         <ion-buttons slot="end">
           <ion-button fill="clear" @click="navigateToSettings">
             <ion-icon
               aria-hidden="true"
               :icon="settings"
-              style="font-size: 28px"
+              style="font-size: 28px; border-radius: 50%"
             />
           </ion-button>
         </ion-buttons>
@@ -17,7 +16,7 @@
     </ion-header>
 
     <ion-content class="ion-padding">
-      <ExploreContainer name="Tab 1 page" />
+      <UpcomingDueDates />
       <QuickAccess />
     </ion-content>
   </ion-page>
@@ -34,10 +33,10 @@ import {
   IonButton,
   IonIcon,
 } from "@ionic/vue";
-import ExploreContainer from "@/components/ExploreContainer.vue";
 import QuickAccess from "@/views/Home/components/QuickAccess.vue";
 import { useRouter } from "vue-router";
 import { settings } from "ionicons/icons";
+import UpcomingDueDates from "@/views/Home/components/UpcomingDueDates.vue";
 
 const router = useRouter();
 

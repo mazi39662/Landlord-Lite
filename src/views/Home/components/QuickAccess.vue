@@ -1,21 +1,16 @@
 <template>
-  <ion-page>
-    <ion-content :fullscreen="true">
-      <ServicesCards
-        v-for="(service, index) in services"
-        :key="index"
-        :icon="service.icon"
-        :title="service.title"
-        :subtitle="service.subtitle"
-        :description="service.description"
-        @click="goTo(service.path)"
-      />
-    </ion-content>
-  </ion-page>
+  <ServicesCards
+    v-for="(service, index) in services"
+    :key="index"
+    :icon="service.icon"
+    :title="service.title"
+    :subtitle="service.subtitle"
+    :description="service.description"
+    @click="goTo(service.path)"
+  />
 </template>
 
 <script setup lang="ts">
-import { IonPage, IonContent } from "@ionic/vue";
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import ServicesCards from "@/views/Home/components/ServicesCards.vue";
