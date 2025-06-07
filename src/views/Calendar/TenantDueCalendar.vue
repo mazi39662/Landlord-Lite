@@ -20,7 +20,13 @@
         <ion-item-divider color="light">
           Due on {{ selectedDate }}
         </ion-item-divider>
-        <ion-item v-for="(due, index) in dueToday" :key="index">
+        <ion-item
+          v-for="(due, index) in dueToday"
+          :key="index"
+          @click="openReceipt(due)"
+          button
+          detail
+        >
           <ion-label>
             <h3>{{ due.tenant }}</h3>
             <p>🏢 {{ due.property }}</p>
@@ -32,6 +38,80 @@
       <ion-text v-else class="ion-margin-top">
         <p>No dues on this day.</p>
       </ion-text>
+
+      <!-- 📋 Receipt Modal -->
+      <ion-modal :is-open="showModal" @didDismiss="showModal = false">
+        <ion-header>
+          <ion-toolbar color="primary">
+            <ion-title>Rent Receipt</ion-title>
+            <ion-buttons slot="end">
+              <ion-button @click="showModal = false">Close</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <div id="receipt-content" class="receipt">
+            <h2>🏠 Rent Payment Receipt</h2>
+            <p><strong>Tenant:</strong> {{ selectedTenant?.tenant }}</p>
+            <p><strong>Property:</strong> {{ selectedTenant?.property }}</p>
+            <p><strong>Date Due:</strong> {{ selectedTenant?.date }}</p>
+
+            <!-- Utilities for viewing -->
+            <div v-if="!isDownloading">
+              <p><strong>Utilities:</strong></p>
+              <ion-item>
+                <ion-input
+                  type="number"
+                  v-model.number="electricity"
+                  label="Electricity: "
+                  placeholder="0"
+                ></ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-input
+                  type="number"
+                  v-model.number="water"
+                  label="Water: "
+                  placeholder="0"
+                ></ion-input>
+              </ion-item>
+            </div>
+
+            <!-- Utilities for printing -->
+            <div v-else>
+              <p>
+                <strong>Electricity:</strong> ₱{{ formatAmount(electricity) }}
+              </p>
+              <p><strong>Water:</strong> ₱{{ formatAmount(water) }}</p>
+            </div>
+
+            <p class="ion-margin-top">
+              <strong>Base Rent:</strong> ₱{{
+                formatAmount(selectedTenant?.amount || 0)
+              }}
+            </p>
+            <p>
+              <strong>Total:</strong>
+              ₱{{ formatAmount(totalAmount) }}
+            </p>
+
+            <hr />
+            <p class="text-center">Thank you for your payment!</p>
+          </div>
+
+          <ion-button
+            expand="block"
+            class="ion-margin-top"
+            @click="downloadReceipt"
+          >
+            Download Receipt
+          </ion-button>
+
+          <ion-button expand="block" color="success" @click="saveUtilityData">
+            Save Data
+          </ion-button>
+        </ion-content>
+      </ion-modal>
     </ion-content>
   </ion-page>
 </template>
@@ -49,15 +129,22 @@ import {
   IonLabel,
   IonItemDivider,
   IonText,
+  IonButton,
+  IonButtons,
+  IonInput,
+  IonModal,
 } from "@ionic/vue";
-import { ref, computed } from "vue";
+import { ref, computed, nextTick } from "vue";
 import { LocalNotifications } from "@capacitor/local-notifications";
+import html2canvas from "html2canvas";
 
 // Reactive state
 const dueDates = ref<
   { date: string; tenant: string; property: string; amount: number }[]
 >([]);
 const selectedDate = ref(new Date().toISOString().split("T")[0]);
+
+const isDownloading = ref(false);
 
 // Generate recurring due dates (monthly)
 function generateRecurringDates(tenants: any[]) {
@@ -77,8 +164,13 @@ function generateRecurringDates(tenants: any[]) {
 
       // Handle overflow dates (e.g., Feb 30th)
       if (dueDate.getDate() === dueDay) {
+        // Format date manually to avoid timezone issues
+        const localDate = `${dueDate.getFullYear()}-${(dueDate.getMonth() + 1)
+          .toString()
+          .padStart(2, "0")}-${dueDate.getDate().toString().padStart(2, "0")}`;
+
         list.push({
-          date: dueDate.toISOString().split("T")[0],
+          date: localDate,
           tenant: tenant.name,
           property: `${tenant.property} - Unit ${tenant.unit}`,
           amount: tenant.unit_price || 0,
@@ -140,7 +232,7 @@ async function scheduleUpcomingNotifications() {
   }
 }
 
-// 🔔 Send notification for tenants due today, repeat every 3 hours
+// Send notification for tenants due today, repeat every 3 hours
 async function startTodayDueReminder() {
   const today = new Date().toISOString().split("T")[0];
   const dueTodayList = dueDates.value.filter((d) => d.date === today);
@@ -155,7 +247,6 @@ async function startTodayDueReminder() {
 
   let notificationId = 500;
 
-  // Function to trigger the notification
   const sendReminder = async () => {
     await LocalNotifications.schedule({
       notifications: [
@@ -163,18 +254,91 @@ async function startTodayDueReminder() {
           id: notificationId++,
           title: "📢 Rent Due Today",
           body: message,
-          schedule: { at: new Date(new Date().getTime() + 1000) }, // 1 second delay
+          schedule: { at: new Date(new Date().getTime() + 1000) },
         },
       ],
     });
   };
 
-  // Ask permission and start repeating reminder
   const perm = await LocalNotifications.requestPermissions();
   if (perm.display === "granted") {
-    sendReminder(); // send now
+    sendReminder();
     setInterval(sendReminder, 3 * 60 * 60 * 1000); // repeat every 3 hours
   }
+}
+
+const showModal = ref(false);
+const selectedTenant = ref<{
+  tenant: string;
+  property: string;
+  amount: number;
+  date: string;
+} | null>(null);
+
+function openReceipt(due: any) {
+  selectedTenant.value = due;
+
+  // Load saved utility data if exists
+  const key = `utilities-${due.date}-${due.tenant}`;
+  const saved = localStorage.getItem(key);
+
+  if (saved) {
+    const data = JSON.parse(saved);
+    electricity.value = data.electricity || 0;
+    water.value = data.water || 0;
+  } else {
+    electricity.value = 0;
+    water.value = 0;
+  }
+
+  showModal.value = true;
+}
+
+const electricity = ref(0);
+const water = ref(0);
+
+const totalAmount = computed((): number => {
+  const base = Number(selectedTenant.value?.amount) || 0;
+  const elec = Number(electricity.value) || 0;
+  const watr = Number(water.value) || 0;
+  return base + elec + watr;
+});
+
+async function downloadReceipt() {
+  const element = document.getElementById("receipt-content");
+  if (!element) return;
+
+  isDownloading.value = true; // Switch to print view
+  await nextTick(); // Wait for DOM update
+
+  element.classList.add("light-mode");
+
+  const canvas = await html2canvas(element, {
+    backgroundColor: "#ffffff",
+    scale: 2, // Improve quality
+  });
+
+  const link = document.createElement("a");
+  link.href = canvas.toDataURL("image/png");
+  link.download = `rent-receipt-${
+    selectedTenant.value?.tenant || "tenant"
+  }.png`;
+  link.click();
+
+  element.classList.remove("light-mode");
+  isDownloading.value = false; // Switch back to input view
+}
+
+function saveUtilityData() {
+  if (!selectedTenant.value) return;
+
+  const key = `utilities-${selectedTenant.value.date}-${selectedTenant.value.tenant}`;
+  const data = {
+    electricity: Number(electricity.value),
+    water: Number(water.value),
+  };
+
+  localStorage.setItem(key, JSON.stringify(data));
 }
 
 // Load and prepare due dates
@@ -199,3 +363,39 @@ function onLoad() {
 
 onLoad();
 </script>
+
+<style scoped>
+.receipt p {
+  margin: 6px 0;
+  font-size: 16px;
+}
+
+.receipt strong {
+  display: inline-block;
+  min-width: 110px;
+}
+
+.receipt {
+  border: 3px dashed #ccc;
+  padding: 20px;
+  border-radius: 10px;
+}
+.receipt h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.text-center {
+  text-align: center;
+}
+
+.light-mode {
+  background: white !important;
+  color: black !important;
+}
+
+.light-mode * {
+  background: transparent !important;
+  color: black !important;
+  border-color: #ccc !important;
+}
+</style>
