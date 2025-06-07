@@ -68,22 +68,19 @@
         </ion-item>
 
         <ion-item>
-          <ion-label label-placement="floating">ID Image URL:</ion-label>
-          <ion-input v-model="newTenant.id_image" :readonly="viewOnly" />
+          <ion-label>ID Image:</ion-label>
+          <input
+            type="file"
+            accept="image/*"
+            @change="handleFileUpload"
+            :disabled="viewOnly"
+            style="padding: 10px 0"
+          />
         </ion-item>
 
         <ion-item>
           <ion-label label-placement="floating">Reference ID:</ion-label>
-          <ion-input v-model="newTenant.ref_id" :readonly="viewOnly" />
-        </ion-item>
-
-        <ion-item>
-          <ion-label label-placement="floating">Unit Number:</ion-label>
-          <ion-input
-            type="number"
-            v-model="newTenant.unit_id"
-            :readonly="viewOnly"
-          />
+          <ion-input v-model="newTenant.ref_id" :readonly="true" />
         </ion-item>
 
         <ion-item>
@@ -92,8 +89,28 @@
         </ion-item>
 
         <ion-item>
-          <ion-label label-placement="floating">Property:</ion-label>
-          <ion-input v-model="newTenant.property" :readonly="viewOnly" />
+          <ion-label>Property</ion-label>
+          <ion-select
+            v-model="newTenant.property"
+            placeholder="Select Property"
+          >
+            <ion-select-option
+              v-for="(name, index) in propertyNames"
+              :key="index"
+              :value="name"
+            >
+              {{ name }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+
+        <ion-item>
+          <ion-label label-placement="floating">Unit Price:</ion-label>
+          <ion-input
+            type="number"
+            v-model="newTenant.unit_price"
+            :readonly="viewOnly"
+          />
         </ion-item>
 
         <ion-item>
@@ -121,9 +138,12 @@
             :disabled="viewOnly"
             interface="popover"
           >
-            <ion-select-option value="active">Active</ion-select-option>
-            <ion-select-option value="pending">Pending</ion-select-option>
-            <ion-select-option value="moved_out">Moved Out</ion-select-option>
+            <ion-select-option value="Occupied">Occupied</ion-select-option>
+            <ion-select-option value="Moved Out">Moved Out</ion-select-option>
+            <ion-select-option value="Available">Available</ion-select-option>
+            <ion-select-option value="Not Available">
+              Not Available
+            </ion-select-option>
           </ion-select>
         </ion-item>
 
@@ -131,9 +151,9 @@
           v-if="!viewOnly"
           expand="block"
           class="ion-margin-top"
-          @click="addTenant"
+          @click="saveTenant"
         >
-          Add Tenant
+          Save Tenant
         </ion-button>
       </ion-content>
     </ion-modal>
@@ -177,59 +197,50 @@ interface Tenant {
   due_date?: string;
   status?: "active" | "moved_out" | "pending";
   property?: string;
+  unit_price?: number;
 }
 
 const viewOnly = ref(false);
 const showAddModal = ref(false);
 const searchTerm = ref("");
+const propertyNames = ref<string[]>([]);
+const tenants = ref<Tenant[]>([]);
 
 // Load tenants from localStorage
 function loadTenants(): Tenant[] {
   const stored = localStorage.getItem("tenants");
+  const storedProperties = localStorage.getItem("propertyData");
+
+  if (storedProperties) {
+    try {
+      const properties = JSON.parse(storedProperties);
+      propertyNames.value = properties.map((p: any) => p.name);
+    } catch (e) {
+      console.error("Error parsing propertyData:", e);
+    }
+  }
+
   return stored ? JSON.parse(stored) : [];
 }
 
+// Save tenants to localStorage
 function saveTenants(data: Tenant[]) {
   localStorage.setItem("tenants", JSON.stringify(data));
 }
 
-// Initialize tenants with sample data fallback
-const tenants = reactive<Tenant[]>(
-  loadTenants().length
-    ? loadTenants()
-    : [
-        {
-          id: 1,
-          name: "John Doe",
-          email: "john@example.com",
-          phone: "123-456-7890",
-          unit: "101",
-          property: "Building A",
-          address: "123 Main St",
-          ref_id: "REF001",
-          unit_id: 101,
-          num_people: 2,
-          due_date: "2025-06-30",
-          status: "active",
-        },
-        {
-          id: 2,
-          name: "Jane Smith",
-          email: "jane@example.com",
-          phone: "098-765-4321",
-          unit: "202",
-          property: "Building B",
-          address: "456 Side Ave",
-          ref_id: "REF002",
-          unit_id: 202,
-          num_people: 1,
-          due_date: "2025-07-05",
-          status: "pending",
-        },
-      ]
-);
+// Initialize tenant data
+function initTenants() {
+  try {
+    const loaded = loadTenants();
+    tenants.value = loaded.length ? loaded : [];
+  } catch (error) {
+    console.error("Error initializing tenants:", error);
+    alert("Error initializing tenants.");
+  }
+}
 
-// Tenant form state
+initTenants();
+
 const newTenant = reactive<Tenant>({
   id: 0,
   name: "",
@@ -240,16 +251,16 @@ const newTenant = reactive<Tenant>({
   ref_id: "",
   unit_id: undefined,
   unit: "",
+  unit_price: 0,
   num_people: 1,
   due_date: "",
   status: "active",
   property: "",
 });
 
-// Computed for filtered tenants
 const filteredTenants = computed(() => {
-  if (!searchTerm.value.trim()) return tenants;
-  return tenants.filter((t) =>
+  if (!searchTerm.value.trim()) return tenants.value;
+  return tenants.value.filter((t) =>
     [t.name, t.email, t.phone, t.unit, t.property]
       .filter(Boolean)
       .some((field) =>
@@ -258,53 +269,85 @@ const filteredTenants = computed(() => {
   );
 });
 
-// Open modal to add new tenant
 function addTenant() {
-  reset();
-  showAddModal.value = true;
-}
-
-// Save the tenant entry
-function saveTenant() {
-  const newId = tenants.length ? Math.max(...tenants.map((t) => t.id)) + 1 : 1;
-
-  const newEntry: Tenant = {
-    id: newId,
-    ...newTenant,
-  };
-
-  tenants.push(newEntry);
-  saveTenants(tenants);
-  showAddModal.value = false;
-  reset();
-}
-
-// View tenant details in read-only mode
-function viewTenant(tenant: Tenant) {
-  Object.assign(newTenant, tenant);
-  showAddModal.value = true;
-  viewOnly.value = true;
-}
-
-// Edit existing tenant
-function editTenant(tenant: Tenant) {
-  Object.assign(newTenant, tenant);
-  showAddModal.value = true;
-  viewOnly.value = false;
-}
-
-// Delete tenant
-function deleteTenant(id: number) {
-  const index = tenants.findIndex((t) => t.id === id);
-  if (index !== -1 && confirm("Are you sure you want to delete this tenant?")) {
-    tenants.splice(index, 1);
-    saveTenants(tenants);
+  try {
+    reset();
+    newTenant.ref_id = generateUniqueRefId();
+    showAddModal.value = true;
+    viewOnly.value = false;
+  } catch (error) {
+    console.error("Error adding tenant:", error);
+    alert("Error adding tenant.");
   }
 }
 
-// Reset tenant form
+function saveTenant() {
+  if (viewOnly.value) return;
+
+  try {
+    const index = tenants.value.findIndex((t) => t.id === newTenant.id);
+
+    if (index === -1) {
+      const newId =
+        tenants.value.length > 0
+          ? Math.max(...tenants.value.map((t) => t.id)) + 1
+          : 1;
+
+      tenants.value.push({
+        ...JSON.parse(JSON.stringify(newTenant)),
+        id: newId,
+      });
+      alert("Tenant added successfully.");
+    } else {
+      tenants.value[index] = { ...JSON.parse(JSON.stringify(newTenant)) };
+      alert("Tenant updated successfully.");
+    }
+
+    saveTenants(tenants.value);
+    showAddModal.value = false;
+    reset();
+  } catch (error) {
+    console.error("Error saving tenant:", error);
+    alert("Error saving tenant.");
+  }
+}
+
+function viewTenant(tenant: Tenant) {
+  try {
+    Object.assign(newTenant, tenant);
+    showAddModal.value = true;
+    viewOnly.value = true;
+  } catch (error) {
+    console.error("Error viewing tenant:", error);
+    alert("Error viewing tenant.");
+  }
+}
+
+function editTenant(tenant: Tenant) {
+  try {
+    Object.assign(newTenant, tenant);
+    showAddModal.value = true;
+    viewOnly.value = false;
+  } catch (error) {
+    console.error("Error editing tenant:", error);
+    alert("Error editing tenant.");
+  }
+}
+
+function deleteTenant(id: number) {
+  try {
+    if (confirm("Are you sure you want to delete this tenant?")) {
+      tenants.value = tenants.value.filter((t) => t.id !== id);
+      saveTenants(tenants.value);
+      alert("Tenant deleted.");
+    }
+  } catch (error) {
+    console.error("Error deleting tenant:", error);
+    alert("Error deleting tenant.");
+  }
+}
+
 function reset() {
-  console.log("reset");
   Object.assign(newTenant, {
     id: 0,
     name: "",
@@ -321,5 +364,31 @@ function reset() {
     property: "",
   });
   viewOnly.value = false;
+}
+
+function handleFileUpload(event: Event) {
+  try {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (file) {
+      newTenant.id_image = URL.createObjectURL(file);
+    }
+  } catch (error) {
+    console.error("Error uploading file:", error);
+    alert("Error uploading file.");
+  }
+}
+
+function generateUniqueRefId(): string {
+  const existingRefIds = tenants.value.map((t) => t.ref_id);
+  let refId = "";
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+  do {
+    refId = Array.from({ length: 8 }, () =>
+      chars.charAt(Math.floor(Math.random() * chars.length))
+    ).join("");
+  } while (existingRefIds.includes(refId));
+
+  return refId;
 }
 </script>

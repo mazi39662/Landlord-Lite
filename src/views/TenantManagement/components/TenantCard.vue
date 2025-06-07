@@ -25,6 +25,6 @@ import { pencil, trash, eye } from "ionicons/icons";
 import type { Tenant } from "../types";
 
 const props = defineProps<{
-  tenant: Tenant & { unit: string; property: string }; // added unit and property
+  tenant: Tenant & { unit: string; property: string };
 }>();
 </script>
