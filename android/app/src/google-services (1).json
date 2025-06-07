@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "879965384525",
+    "project_id": "landlord-lite-b9514",
+    "storage_bucket": "landlord-lite-b9514.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:879965384525:android:2b65748495ac1efbd19104",
+        "android_client_info": {
+          "package_name": "com.cypherstudio.landlordlite"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB7Jj47cYtJNoT2vONoRwKyoxXy6_fMjXY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
