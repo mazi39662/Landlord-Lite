@@ -18,8 +18,6 @@
         :badgeColor="badgeColor"
         @edit="openEditModal"
         @delete="handleDeleteProperty"
-        @edit-unit="handleEditUnit"
-        @delete-unit="handleDeleteUnit"
       />
     </ion-content>
 
@@ -30,7 +28,6 @@
       @close="closeModal"
       @add="handleAddProperty"
       @update="handleUpdateProperty"
-      @delete="handleDeleteProperty"
     />
   </ion-page>
 </template>
@@ -47,16 +44,13 @@ import {
   IonContent,
 } from "@ionic/vue";
 import { add } from "ionicons/icons";
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, watch } from "vue";
 
 import SearchBar from "@/components/SearchBar.vue";
 import PropertiesList from "@/views/Properties/components/PropertyList.vue";
 import PropertyAddModal from "@/views/Properties/components/PropertyAddModal.vue";
 
-const showModal = ref(false);
-const searchTerm = ref("");
-const propertyToEdit = ref<Property | null>(null);
-
+// ---------------- Interfaces ----------------
 interface Tenant {
   id: number;
   name: string;
@@ -65,7 +59,7 @@ interface Tenant {
 interface Unit {
   id: number;
   name: string;
-  status: "Occupied" | "Available" | "Not Available";
+  status: "Occupied" | "Available" | "Not Available" | "Move Out";
   tenant?: Tenant;
 }
 
@@ -79,56 +73,47 @@ interface Property {
   units: Unit[];
 }
 
-const properties = reactive<Property[]>([
-  {
-    id: 1,
-    name: "Building A",
-    location: "123 Main St",
-    num_of_rooms: 3,
-    description: "Main branch",
-    created_at: new Date().toISOString(),
-    units: [
-      {
-        id: 101,
-        name: "Unit 101",
-        status: "Occupied",
-        tenant: { id: 1, name: "John Doe" },
-      },
-      {
-        id: 102,
-        name: "Unit 102",
-        status: "Available",
-      },
-      {
-        id: 103,
-        name: "Unit 103",
-        status: "Not Available",
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: "Building B",
-    location: "456 Market St",
-    num_of_rooms: 2,
-    description: "Secondary location",
-    created_at: new Date().toISOString(),
-    units: [
-      {
-        id: 201,
-        name: "Unit 201",
-        status: "Occupied",
-        tenant: { id: 2, name: "Jane Smith" },
-      },
-      {
-        id: 202,
-        name: "Unit 202",
-        status: "Available",
-      },
-    ],
-  },
-]);
+// ---------------- Reactive Data ----------------
+const showModal = ref(false);
+const searchTerm = ref("");
+const propertyToEdit = ref<Property | null>(null);
+const STORAGE_KEY = "propertyData";
 
+// Load or initialize local storage
+function loadFromLocalStorage(): Property[] {
+  const data = localStorage.getItem(STORAGE_KEY);
+  const storedTenant = localStorage.getItem("tenants");
+
+  if (!data) return [];
+
+  const properties: Property[] = JSON.parse(data);
+
+  // Parse and assign tenants to properties
+  if (storedTenant) {
+    const tenants = JSON.parse(storedTenant);
+    tenants.forEach((tenant: any) => {
+      const matchingProperty = properties.find(
+        (p) => p.name === tenant.property
+      );
+      if (matchingProperty) {
+        matchingProperty.units.push(tenant);
+      }
+    });
+  }
+
+  return properties;
+}
+
+const properties = reactive<Property[]>(loadFromLocalStorage());
+
+function saveToLocalStorage() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(properties));
+}
+
+// ---------------- Watchers ----------------
+watch(() => properties, saveToLocalStorage, { deep: true });
+
+// ---------------- Modal Handling ----------------
 function openAddModal() {
   propertyToEdit.value = null;
   showModal.value = true;
@@ -144,68 +129,48 @@ function closeModal() {
   propertyToEdit.value = null;
 }
 
+// ---------------- CRUD Operations ----------------
+function getNextPropertyId(): number {
+  const ids = properties.map((p) => p.id);
+  return ids.length ? Math.max(...ids) + 1 : 1;
+}
+
 function handleAddProperty(newProp: Property) {
-  properties.push(newProp);
+  const newProperty = {
+    ...newProp,
+    id: getNextPropertyId(),
+    units: [],
+    created_at: new Date().toISOString(),
+  };
+  properties.push(newProperty);
   closeModal();
 }
 
 function handleUpdateProperty(updatedProp: Property) {
-  const idx = properties.findIndex((p) => p.id === updatedProp.id);
-  if (idx !== -1) {
-    properties[idx] = { ...updatedProp };
+  const index = properties.findIndex((p) => p.id === updatedProp.id);
+  if (index !== -1) {
+    properties[index] = { ...updatedProp };
   }
   closeModal();
 }
 
 function handleDeleteProperty(id: number) {
-  const idx = properties.findIndex((p) => p.id === id);
-  if (idx !== -1) properties.splice(idx, 1);
+  const index = properties.findIndex((p) => p.id === id);
+  if (index !== -1) properties.splice(index, 1);
 }
 
-function handleEditUnit({
-  propertyId,
-  unit,
-}: {
-  propertyId: number;
-  unit: Unit;
-}) {
-  const prop = properties.find((p) => p.id === propertyId);
-  if (!prop) return;
-
-  const idx = prop.units.findIndex((u) => u.id === unit.id);
-  if (idx !== -1) {
-    prop.units[idx] = { ...unit, name: unit.name + " (Edited)" }; // Demo edit
-  }
-}
-
-function handleDeleteUnit({
-  propertyId,
-  unitId,
-}: {
-  propertyId: number;
-  unitId: number;
-}) {
-  const prop = properties.find((p) => p.id === propertyId);
-  if (!prop) return;
-
-  const idx = prop.units.findIndex((u) => u.id === unitId);
-  if (idx !== -1) prop.units.splice(idx, 1);
-}
-
+// ---------------- Search Logic ----------------
 const filteredProperties = computed(() => {
-  if (!searchTerm.value.trim()) return properties;
-
-  const term = searchTerm.value.toLowerCase();
+  const term = searchTerm.value.toLowerCase().trim();
+  if (!term) return properties;
 
   return properties
     .map((property) => {
-      const matchingUnits = property.units.filter((unit) => {
-        return (
-          unit.name.toLowerCase().includes(term) ||
-          unit.status.toLowerCase().includes(term) ||
-          unit.tenant?.name.toLowerCase().includes(term)
-        );
-      });
+      const matchingUnits = property.units.filter((unit) =>
+        [unit.name, unit.status, unit.tenant?.name || ""].some((field) =>
+          field.toLowerCase().includes(term)
+        )
+      );
 
       if (property.name.toLowerCase().includes(term) || matchingUnits.length) {
         return { ...property, units: matchingUnits };
@@ -216,14 +181,17 @@ const filteredProperties = computed(() => {
     .filter(Boolean) as Property[];
 });
 
+// ---------------- Helpers ----------------
 function badgeColor(status: Unit["status"]) {
   switch (status) {
     case "Occupied":
-      return "danger";
-    case "Available":
       return "success";
+    case "Available":
+      return "warning";
     case "Not Available":
-      return "medium";
+      return "danger";
+    case "Move Out":
+      return "danger";
   }
 }
 </script>
