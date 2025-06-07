@@ -5,7 +5,7 @@
         <ion-title size="large">Landlord - Lite</ion-title>
 
         <ion-buttons slot="end">
-          <ion-button fill="clear">
+          <ion-button fill="clear" @click="navigateToSettings">
             <ion-icon
               aria-hidden="true"
               :icon="settings"
@@ -36,5 +36,12 @@ import {
 } from "@ionic/vue";
 import ExploreContainer from "@/components/ExploreContainer.vue";
 import QuickAccess from "@/views/Home/components/QuickAccess.vue";
+import { useRouter } from "vue-router";
 import { settings } from "ionicons/icons";
+
+const router = useRouter();
+
+function navigateToSettings() {
+  router.push("/settings");
+}
 </script>

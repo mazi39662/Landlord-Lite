@@ -46,20 +46,6 @@ const services = ref([
     description:
       "Check due dates for tenants. Click on a date to see details like tenant, property, and amount.",
   },
-  // {
-  //   icon: "wallet-outline",
-  //   title: "Transactions",
-  //   subtitle: "Manage payments and invoices",
-  //   path: "/",
-  //   description: "Track all transactions related to tenants and properties.",
-  // },
-  //   {
-  //     icon: "settings-outline",
-  //     title: "Settings",
-  //     subtitle: "Configure your app",
-  //     path: "/",
-  //     description: "Adjust app preferences and configurations.",
-  //   },
 ]);
 
 function goTo(path: string) {

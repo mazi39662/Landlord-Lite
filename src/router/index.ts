@@ -44,6 +44,10 @@ const routes: Array<RouteRecordRaw> = [
         path: "/tenantduecalendar",
         component: () => import("@/views/Calendar/TenantDueCalendar.vue"),
       },
+      {
+        path: "/settings",
+        component: () => import("@/views/Settings/Settings.vue"),
+      },
       //
     ],
   },
