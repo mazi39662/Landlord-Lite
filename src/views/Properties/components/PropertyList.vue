@@ -50,6 +50,7 @@
             <div class="unit-row">
               <div class="unit-info">
                 Unit: {{ unit.unit ? unit.unit : "No Unit" }}
+                {{ currency[0] || "$" }}
                 {{
                   unit.unit_price
                     ? " - " + Number(unit.unit_price).toLocaleString()
@@ -93,8 +94,22 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(["edit", "delete"]);
+const currency = ref<string[]>([]);
 
 const activePopoverId = ref<number | null>(null);
+
+function loadUserSettings() {
+  const settings = localStorage.getItem("user_settings");
+  console.log("User settings:", settings);
+  if (settings) {
+    try {
+      const parsedSettings = JSON.parse(settings);
+      currency.value = parsedSettings.currency || [];
+    } catch (e) {
+      console.error("Error parsing user settings:", e);
+    }
+  }
+}
 
 function toggleMenu(propertyId: number) {
   activePopoverId.value =
@@ -114,6 +129,8 @@ function emitDeleteProperty(propertyId: number) {
   emit("delete", propertyId);
   closeMenu();
 }
+
+loadUserSettings();
 </script>
 
 <style scoped>
@@ -126,7 +143,7 @@ function emitDeleteProperty(propertyId: number) {
 }
 
 .unit-card {
-  padding: 0;
+  padding: 5px;
   margin: 0;
   border-bottom: 1px solid gray;
 }

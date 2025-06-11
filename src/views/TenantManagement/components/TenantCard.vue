@@ -1,9 +1,12 @@
 <template>
   <ion-item>
-    <ion-label>
-      <h2>{{ tenant.name }}</h2>
-      <p><strong>Unit:</strong> {{ tenant.unit }}</p>
-      <p><strong>Property:</strong> {{ tenant.property }}</p>
+    <ion-label class="label-container">
+      <img :src="tenant.id_image" alt="profileID" class="profileID" />
+      <div>
+        <h2>{{ tenant.name }}</h2>
+        <p><strong>Unit:</strong> {{ tenant.unit }}</p>
+        <p><strong>Property:</strong> {{ tenant.property }}</p>
+      </div>
     </ion-label>
     <ion-buttons slot="end">
       <ion-button color="medium" @click="$emit('view', tenant)">
@@ -26,9 +29,24 @@ import { pencil, trash, eye } from "ionicons/icons";
 interface Tenant {
   id: number;
   name: string;
+  id_image: string;
 }
 
 const props = defineProps<{
   tenant: Tenant & { unit: string; property: string };
 }>();
 </script>
+
+<style scoped>
+.profileID {
+  width: 70px;
+  height: 70px;
+  border-radius: 10px;
+  object-fit: cover;
+  margin-right: 10px;
+}
+.label-container {
+  display: flex;
+  align-items: center;
+}
+</style>

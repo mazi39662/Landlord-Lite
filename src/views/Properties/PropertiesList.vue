@@ -13,17 +13,18 @@
     </ion-header>
 
     <ion-content>
-      <template v-if="filteredProperties.length > 0">
+      <PageRefresher />
+      <div v-if="filteredProperties.length > 0">
         <PropertiesList
           :properties="filteredProperties"
           :badgeColor="badgeColor"
           @edit="openEditModal"
           @delete="handleDeleteProperty"
         />
-      </template>
-      <template v-else>
+      </div>
+      <div v-else>
         <NoData message="No properties found." />
-      </template>
+      </div>
     </ion-content>
 
     <PropertyAddModal
@@ -54,6 +55,7 @@ import NoData from "@/components/NoData.vue";
 import SearchBar from "@/components/SearchBar.vue";
 import PropertiesList from "@/views/Properties/components/PropertyList.vue";
 import PropertyAddModal from "@/views/Properties/components/PropertyAddModal.vue";
+import PageRefresher from "@/components/PageRefresher.vue";
 
 // ---------------- Interfaces ----------------
 interface Tenant {

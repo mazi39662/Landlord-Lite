@@ -16,6 +16,7 @@
     </ion-header>
 
     <ion-content class="ion-padding">
+      <PageRefresher />
       <UpcomingDueDates />
       <QuickAccess />
     </ion-content>
@@ -37,6 +38,7 @@ import QuickAccess from "@/views/Home/components/QuickAccess.vue";
 import { useRouter } from "vue-router";
 import { settings } from "ionicons/icons";
 import UpcomingDueDates from "@/views/Home/components/UpcomingDueDates.vue";
+import PageRefresher from "@/components/PageRefresher.vue";
 
 const router = useRouter();
 

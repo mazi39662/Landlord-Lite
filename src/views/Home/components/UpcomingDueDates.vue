@@ -9,7 +9,7 @@
           <h2>{{ item.name }}</h2>
           <p>Due on {{ item.date }}</p>
         </ion-label>
-        <ion-note slot="end"> {{ item.property }} - {{ item.Unit }} </ion-note>
+        <ion-note slot="end">{{ item.property }} - {{ item.Unit }}</ion-note>
       </ion-item>
       <ion-item v-if="filteredDueDates.length === 0">
         <ion-label>
@@ -30,28 +30,41 @@ import {
   IonLabel,
   IonNote,
 } from "@ionic/vue";
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 
-// Sample due date data
-const dueDates = ref([
-  {
-    name: "Juan Dela Cruz",
-    date: "2025-06-08",
-    Unit: 101,
-    property: "Building A",
-  },
-  { name: "Maria Santos", date: "2025-06-09" },
-  { name: "Carlos Reyes", date: "2025-06-10" },
-  { name: "Outdated Entry", date: "2025-06-01" },
-]);
+// Reactive array for due dates
+const dueDates = ref<any[]>([]);
 
+// Load data on mounted lifecycle
+onMounted(() => {
+  const storedTenant = localStorage.getItem("tenants");
+
+  if (storedTenant) {
+    try {
+      const tenants = JSON.parse(storedTenant);
+      dueDates.value = tenants.map((t: any) => ({
+        name: t.name,
+        date: t.due_date,
+        Unit: t.unit,
+        property: t.property,
+      }));
+    } catch (err) {
+      console.error("Error parsing tenants:", err);
+    }
+  }
+});
+
+// Today's date and 3 days from now
 const today = new Date();
-const threeDaysFromNow = new Date();
+today.setHours(0, 0, 0, 0); // Normalize to start of day
+const threeDaysFromNow = new Date(today);
 threeDaysFromNow.setDate(today.getDate() + 3);
 
+// Filter due dates within the next 3 days
 const filteredDueDates = computed(() =>
   dueDates.value.filter((item) => {
     const dueDate = new Date(item.date);
+    dueDate.setHours(0, 0, 0, 0); // Normalize
     return dueDate >= today && dueDate <= threeDaysFromNow;
   })
 );
@@ -61,10 +74,8 @@ const filteredDueDates = computed(() =>
 .card-container {
   max-width: 600px;
   margin: 0 auto;
-}
-.list-container {
-  height: 150px;
-  overflow-y: scroll;
-  background-color: aliceblue;
+  max-height: 150px;
+  height: fit-content;
+  overflow-y: auto;
 }
 </style>

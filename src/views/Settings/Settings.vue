@@ -25,6 +25,24 @@
           <ion-label>Dark Mode</ion-label>
           <ion-toggle slot="end" v-model="settings.darkMode" />
         </ion-item>
+
+        <!-- Currency Symbol Dropdown -->
+        <ion-item>
+          <ion-icon :icon="cashOutline" slot="start" />
+          <ion-label>Currency Symbol</ion-label>
+          <ion-select
+            :value="settings.currency"
+            @ionChange="(e) => (settings.currency = e.detail.value)"
+            interface="popover"
+          >
+            <ion-select-option value="₱">₱ (Peso)</ion-select-option>
+            <ion-select-option value="$">$ (Dollar)</ion-select-option>
+            <ion-select-option value="€">€ (Euro)</ion-select-option>
+            <ion-select-option value="¥">¥ (Yen)</ion-select-option>
+            <ion-select-option value="₹">₹ (Rupee)</ion-select-option>
+          </ion-select>
+        </ion-item>
+
         <ion-item button @click="clearCache">
           <ion-icon :icon="trashOutline" slot="start" />
           <ion-label>Clear Cache</ion-label>
@@ -62,16 +80,18 @@ import {
   IonToggle,
   IonIcon,
   IonNote,
+  IonSelect,
+  IonSelectOption,
 } from "@ionic/vue";
 import {
   notificationsOutline,
-  mailOutline,
   moonOutline,
   trashOutline,
   documentTextOutline,
   informationCircleOutline,
+  cashOutline,
 } from "ionicons/icons";
-import { ref, watch, onMounted } from "vue";
+import { ref, watch } from "vue";
 import { LocalNotifications } from "@capacitor/local-notifications";
 
 // Load settings from localStorage or set default
@@ -83,6 +103,7 @@ const settings = ref(
         pushNotifications: false,
         emailAlerts: false,
         darkMode: false,
+        currency: "₱",
       }
 );
 

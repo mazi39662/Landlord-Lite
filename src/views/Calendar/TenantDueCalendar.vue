@@ -7,6 +7,7 @@
     </ion-header>
 
     <ion-content class="ion-padding">
+      <PageRefresher />
       <ion-datetime
         class="custom-calendar"
         presentation="date"
@@ -30,7 +31,7 @@
           <ion-label>
             <h3>{{ due.tenant }}</h3>
             <p>🏢 {{ due.property }}</p>
-            <p>💰 ₱{{ formatAmount(due.amount) }}</p>
+            <p>💰 {{ currency[0] || "$" }}{{ formatAmount(due.amount) }}</p>
           </ion-label>
         </ion-item>
       </ion-list>
@@ -42,7 +43,7 @@
       <!-- 📋 Receipt Modal -->
       <ion-modal :is-open="showModal" @didDismiss="showModal = false">
         <ion-header>
-          <ion-toolbar color="primary">
+          <ion-toolbar>
             <ion-title>Rent Receipt</ion-title>
             <ion-buttons slot="end">
               <ion-button @click="showModal = false">Close</ion-button>
@@ -75,24 +76,35 @@
                   placeholder="0"
                 ></ion-input>
               </ion-item>
+              <ion-item>
+                <ion-input
+                  type="number"
+                  v-model.number="otherUtility"
+                  label="Other: "
+                  placeholder="0"
+                ></ion-input>
+              </ion-item>
             </div>
 
             <!-- Utilities for printing -->
             <div v-else>
               <p>
-                <strong>Electricity:</strong> ₱{{ formatAmount(electricity) }}
+                <strong>Electricity:</strong> {{ currency[0] || "$"
+                }}{{ formatAmount(electricity) }}
               </p>
-              <p><strong>Water:</strong> ₱{{ formatAmount(water) }}</p>
+              <p>
+                <strong>Water:</strong> {{ currency[0] || "$"
+                }}{{ formatAmount(water) }}
+              </p>
             </div>
 
             <p class="ion-margin-top">
-              <strong>Base Rent:</strong> ₱{{
-                formatAmount(selectedTenant?.amount || 0)
-              }}
+              <strong>Base Rent:</strong> {{ currency[0] || "$"
+              }}{{ formatAmount(selectedTenant?.amount || 0) }}
             </p>
             <p>
               <strong>Total:</strong>
-              ₱{{ formatAmount(totalAmount) }}
+              {{ currency[0] || "$" }}{{ formatAmount(totalAmount) }}
             </p>
 
             <hr />
@@ -137,6 +149,7 @@ import {
 import { ref, computed, nextTick } from "vue";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import html2canvas from "html2canvas";
+import PageRefresher from "@/components/PageRefresher.vue";
 
 // Reactive state
 const dueDates = ref<
@@ -145,6 +158,10 @@ const dueDates = ref<
 const selectedDate = ref(new Date().toISOString().split("T")[0]);
 
 const isDownloading = ref(false);
+const otherUtility = ref(0);
+const electricity = ref(0);
+const water = ref(0);
+const currency = ref<string[]>([]);
 
 // Generate recurring due dates (monthly)
 function generateRecurringDates(tenants: any[]) {
@@ -286,22 +303,22 @@ function openReceipt(due: any) {
     const data = JSON.parse(saved);
     electricity.value = data.electricity || 0;
     water.value = data.water || 0;
+    otherUtility.value = data.otherUtility || 0;
   } else {
     electricity.value = 0;
     water.value = 0;
+    otherUtility.value = 0;
   }
 
   showModal.value = true;
 }
 
-const electricity = ref(0);
-const water = ref(0);
-
 const totalAmount = computed((): number => {
   const base = Number(selectedTenant.value?.amount) || 0;
   const elec = Number(electricity.value) || 0;
   const watr = Number(water.value) || 0;
-  return base + elec + watr;
+  const otu = Number(otherUtility.value || 0);
+  return base + elec + watr + otu;
 });
 
 async function downloadReceipt() {
@@ -336,9 +353,24 @@ function saveUtilityData() {
   const data = {
     electricity: Number(electricity.value),
     water: Number(water.value),
+    otherUtility: Number(otherUtility.value),
   };
 
   localStorage.setItem(key, JSON.stringify(data));
+  window.alert("Utility data saved successfully!");
+}
+
+function loadUserSettings() {
+  const settings = localStorage.getItem("user_settings");
+  console.log("User settings:", settings);
+  if (settings) {
+    try {
+      const parsedSettings = JSON.parse(settings);
+      currency.value = parsedSettings.currency || [];
+    } catch (e) {
+      console.error("Error parsing user settings:", e);
+    }
+  }
 }
 
 // Load and prepare due dates
@@ -362,6 +394,7 @@ function onLoad() {
 }
 
 onLoad();
+loadUserSettings();
 </script>
 
 <style scoped>
