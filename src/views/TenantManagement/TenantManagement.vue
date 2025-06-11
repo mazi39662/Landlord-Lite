@@ -3,23 +3,14 @@
     <ion-header>
       <ion-toolbar>
         <ion-title>Tenant Management</ion-title>
-        <div class="add-btn-container">
-          <ion-button
-            v-if="viewMode === 'units'"
-            @click="addUnit()"
-            class="add-btn"
-          >
-            + <ion-icon slot="icon-only" name="business" />
+        <ion-buttons slot="end">
+          <ion-button v-if="viewMode === 'units'" @click="addUnit()">
+            <ion-icon slot="icon-only" :icon="add" />
           </ion-button>
-
-          <ion-button
-            v-if="viewMode === 'tenants'"
-            @click="addTenant()"
-            class="add-btn"
-          >
-            + <ion-icon slot="icon-only" name="person-add" />
+          <ion-button v-if="viewMode === 'tenants'" @click="addTenant()">
+            <ion-icon slot="icon-only" :icon="add" />
           </ion-button>
-        </div>
+        </ion-buttons>
       </ion-toolbar>
       <search-bar v-model="searchTerm" />
       <!-- Action Buttons -->
@@ -127,10 +118,11 @@ import {
   IonItemDivider,
   IonRippleEffect,
   IonChip,
+  IonButtons,
 } from "@ionic/vue";
 
 import { ref, computed } from "vue";
-
+import { add } from "ionicons/icons";
 import TenantCard from "@/views/TenantManagement/components/TenantCard.vue";
 import SearchBar from "@/components/SearchBar.vue";
 import NoData from "@/components/NoData.vue";
@@ -440,18 +432,3 @@ function saveEditedUnit(updatedUnit: Unit, tenantData: any): void {
   }
 }
 </script>
-
-<style scoped>
-.add-btn-container {
-  display: flex;
-  justify-content: flex-end;
-  padding: 10px 16px;
-}
-
-.add-btn {
-  border-radius: 50%;
-  overflow: hidden;
-  width: 40px;
-  height: 40px;
-}
-</style>
