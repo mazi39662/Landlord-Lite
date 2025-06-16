@@ -74,12 +74,12 @@
 
     <!-- Modals -->
     <TenantModal
-      :isOpen="showAddModal"
+      :is-open="showAddModal"
       :tenant="newTenant"
-      :viewOnly="viewOnly"
-      :propertyNames="propertyNames"
-      @close="showAddModal = false"
+      :property-names="propertyNames"
+      :view-only="viewOnly"
       @save="saveTenant"
+      @close="showAddModal = false"
     />
 
     <AddUnitModal
@@ -281,6 +281,7 @@ function viewTenant(tenant: Tenant) {
 }
 
 function editTenant(tenant: Tenant) {
+  console.log("Editing tenant:", tenant);
   Object.assign(newTenant.value, tenant);
   showAddModal.value = true;
   viewOnly.value = false;
@@ -294,29 +295,39 @@ function deleteTenant(id: number) {
   }
 }
 
-function saveTenant() {
-  if (viewOnly.value) return;
+async function saveTenant(tenant: any) {
+  // If the id_image is a File, convert it to base64
+  if (tenant.id_image instanceof File) {
+    tenant.id_image = await convertImageToBase64(tenant.id_image);
+  }
 
-  const index = tenants.value.findIndex((t) => t.id === newTenant.value.id);
+  const index = tenants.value.findIndex((t) => t.id === tenant.id);
 
   if (index === -1) {
     const newId =
       tenants.value.length > 0
-        ? Math.max(...tenants.value.map((t) => t.id)) + 1
+        ? Math.max(...tenants.value.map((t) => t.id || 0)) + 1
         : 1;
-    tenants.value.push({
-      ...JSON.parse(JSON.stringify(newTenant.value)),
-      id: newId,
-    });
+    tenant.id = newId;
+    tenants.value.push({ ...tenant });
     alert("Tenant added successfully.");
   } else {
-    tenants.value[index] = { ...JSON.parse(JSON.stringify(newTenant.value)) };
+    tenants.value[index] = { ...tenant };
     alert("Tenant updated successfully.");
   }
 
   saveTenants(tenants.value);
   showAddModal.value = false;
   resetTenant();
+}
+
+function convertImageToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 function resetTenant() {
