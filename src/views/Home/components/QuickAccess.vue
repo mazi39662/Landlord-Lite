@@ -1,13 +1,15 @@
 <template>
-  <ServicesCards
-    v-for="(service, index) in services"
-    :key="index"
-    :icon="service.icon"
-    :title="service.title"
-    :subtitle="service.subtitle"
-    :description="service.description"
-    @click="goTo(service.path)"
-  />
+  <div class="service-cards">
+    <ServicesCards
+      v-for="(service, index) in services"
+      :key="index"
+      :icon="service.icon"
+      :title="service.title"
+      :subtitle="service.subtitle"
+      :description="service.description"
+      @click="goTo(service.path)"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -49,3 +51,13 @@ function goTo(path: string) {
   }
 }
 </script>
+
+<style>
+.service-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+}
+</style>

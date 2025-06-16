@@ -1,5 +1,5 @@
 <template>
-  <ion-card class="ion-text-center" @click="$emit('click')">
+  <ion-card class="ion-text-center card-container" @click="$emit('click')">
     <ion-icon :name="icon" size="large" class="icon-top"></ion-icon>
 
     <ion-card-header>
@@ -48,5 +48,11 @@ export default defineComponent({
   font-size: 64px;
   color: #3880ff;
   margin-top: 20px;
+}
+.card-container {
+  cursor: pointer;
+  transition: transform 0.2s;
+  max-width: 300px;
+  margin: 0;
 }
 </style>

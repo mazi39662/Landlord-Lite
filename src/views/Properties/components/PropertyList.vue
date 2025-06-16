@@ -41,11 +41,7 @@
 
       <!-- Units Below Property -->
       <div class="units-container">
-        <ion-card
-          v-for="unit in property.units"
-          :key="unit.id"
-          class="unit-card"
-        >
+        <ion-card v-for="unit in property.units" :key="unit.id">
           <ion-card-content class="unit-card">
             <div class="unit-row">
               <div class="unit-info">
@@ -145,7 +141,7 @@ loadUserSettings();
 .unit-card {
   padding: 5px;
   margin: 0;
-  border-bottom: 1px solid gray;
+  border-bottom: 1px solid #cccccc27;
 }
 
 .unit-row {
