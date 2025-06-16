@@ -325,25 +325,43 @@ async function downloadReceipt() {
   const element = document.getElementById("receipt-content");
   if (!element) return;
 
-  isDownloading.value = true; // Switch to print view
-  await nextTick(); // Wait for DOM update
+  isDownloading.value = true;
+  await nextTick();
 
   element.classList.add("light-mode");
 
   const canvas = await html2canvas(element, {
     backgroundColor: "#ffffff",
-    scale: 2, // Improve quality
+    scale: 2,
   });
 
-  const link = document.createElement("a");
-  link.href = canvas.toDataURL("image/png");
-  link.download = `rent-receipt-${
-    selectedTenant.value?.tenant || "tenant"
-  }.png`;
-  link.click();
+  const imageURL = canvas.toDataURL("image/png");
+
+  // 👇 Generate unique filename
+  const tenantName = selectedTenant.value?.tenant || "tenant";
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const fileName = `rent-receipt-${tenantName}-${timestamp}.png`;
+
+  // ✅ Mobile-friendly image in new tab with filename as alt/title
+  const newTab = window.open();
+  if (newTab) {
+    newTab.document.title = fileName;
+    newTab.document.body.style.margin = "0";
+    newTab.document.body.style.background = "#fff";
+
+    const img = newTab.document.createElement("img");
+    img.src = imageURL;
+    img.style.width = "100%";
+    img.alt = fileName;
+    img.title = fileName;
+
+    newTab.document.body.appendChild(img);
+  } else {
+    alert("Pop-up blocked. Please allow pop-ups to view the receipt.");
+  }
 
   element.classList.remove("light-mode");
-  isDownloading.value = false; // Switch back to input view
+  isDownloading.value = false;
 }
 
 function saveUtilityData() {
@@ -430,5 +448,8 @@ loadUserSettings();
   background: transparent !important;
   color: black !important;
   border-color: #ccc !important;
+}
+.custom-calendar {
+  margin: 10px auto;
 }
 </style>
