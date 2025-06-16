@@ -15,6 +15,11 @@
           <ion-label>Push Notifications</ion-label>
           <ion-toggle slot="end" v-model="settings.pushNotifications" />
         </ion-item>
+
+        <ion-item button @click="checkNotificationPermission">
+          <ion-icon :icon="notificationsOutline" slot="start" />
+          <ion-label>Check Notification Permission</ion-label>
+        </ion-item>
       </ion-list>
 
       <!-- App Preferences -->
@@ -45,7 +50,7 @@
 
         <ion-item button @click="clearCache">
           <ion-icon :icon="trashOutline" slot="start" />
-          <ion-label>Clear Cache</ion-label>
+          <ion-label style="color: red">Clear Cache</ion-label>
         </ion-item>
       </ion-list>
 
@@ -122,14 +127,23 @@ watch(
   async (enabled) => {
     if (enabled) {
       const result = await LocalNotifications.requestPermissions();
+
       if (result.display !== "granted") {
-        alert("Push notification permission denied.");
+        alert(
+          "🔕 Notifications are currently blocked on your device.\n\n" +
+            "To enable notifications:\n" +
+            "- Go to your device Settings\n" +
+            "- Tap on Apps or your Browser/Ionic App\n" +
+            "- Enable Notifications\n\n" +
+            "Then toggle this switch again."
+        );
         settings.value.pushNotifications = false;
       } else {
-        console.log("Push notifications enabled.");
+        console.log("✅ Push notifications enabled.");
+        alert("✅ Push notifications enabled.");
       }
     } else {
-      console.log("Push notifications disabled.");
+      console.log("❌ Push notifications disabled.");
     }
   }
 );
@@ -165,5 +179,17 @@ function clearCache() {
 
 function openPrivacyPolicy() {
   window.open("https://yourdomain.com/privacy", "_blank");
+}
+
+async function checkNotificationPermission() {
+  const result = await LocalNotifications.checkPermissions();
+  if (result.display !== "granted") {
+    alert(
+      "🔒 Notifications are not allowed.\n\n" +
+        "Please enable them in your device settings."
+    );
+  } else {
+    alert("✅ Notifications are allowed.");
+  }
 }
 </script>
